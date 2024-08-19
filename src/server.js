@@ -4,6 +4,8 @@ const express = require('express');
 const cors = require('cors');
 const AppError = require('./utils/AppError');
 
+const database = require('./database/sqlite');
+
 const routes = require('./routes');
 
 const app = express();
@@ -12,6 +14,8 @@ app.use(cors());
 app.use(express.json());
 
 app.use(routes);
+
+database();
 
 
 app.use((error, request, response, next) => {
