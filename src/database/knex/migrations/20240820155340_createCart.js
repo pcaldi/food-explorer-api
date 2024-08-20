@@ -1,15 +1,12 @@
-exports.up = knex => knex.schema.createTable("orders_items", table => {
+exports.up = knex => knex.schema.createTable("cart", table => {
   table.increments("id");
 
+  table.integer("created_by").references("id").inTable("users").onDelete("CASCADE");
 
-
-  table.integer("user_id").references("id").inTable("users").onDelete("CASCADE");
-  table.integer("dish_id").references("id").inTable("dishes").onDelete("CASCADE");
-
-  table.unique([user_id, dish_id]);
 
   table.timestamp("created_at").defaultTo(knex.fn.now());
+  table.timestamp("updated_at").defaultTo(knex.fn.now());
 });
 
 
-exports.down = knex => knex.schema.dropTable("orders_items");
+exports.down = knex => knex.schema.dropTable("cart");
