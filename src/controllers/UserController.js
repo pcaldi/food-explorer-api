@@ -1,4 +1,4 @@
-const { hash } = require('bcryptjs');
+const { hash, compare } = require('bcryptjs');
 
 const AppError = require('../utils/AppError');
 
@@ -19,9 +19,7 @@ class UserController {
       throw new AppError('E-mail já está em uso.');
     }
 
-    const HASH_SALT = 8;
-
-    const hashedPassword = await hash(password, HASH_SALT);
+    const hashedPassword = await hash(password, 8);
 
     await database.run(
       "INSERT INTO users (name,email, password) VALUES (?, ?, ?)",
@@ -32,7 +30,7 @@ class UserController {
   }
 
   async update(request, response) {
-    const { name, email } = request.body;
+    const { name, email, password, old_password } = request.body;
     const { id } = request.params;
 
     const database = await sqlConnection();
@@ -55,13 +53,28 @@ class UserController {
     user.name = name;
     user.email = email;
 
+    if (password && !old_password) {
+      throw new AppError('Informe a senha antiga.');
+    }
+
+    if (password && old_password) {
+      const checkOldPassword = await compare(old_password, user.password);
+
+      if (!checkOldPassword) {
+        throw new AppError('Senha antiga inválida.');
+      }
+
+      user.password = await hash(password, 8);
+    }
+
     await database.run(`
       UPDATE users SET
       name = ?,
       email = ?,
+      password = ?,
       updated_at = DATETIME ('now')
       WHERE id = ?`,
-      [user.name, user.email, id]
+      [user.name, user.email, user.password, id]
     )
 
     return response.json();
