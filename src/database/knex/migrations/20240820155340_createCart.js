@@ -1,4 +1,4 @@
-exports.up = knex => knex.schema.createTable("favorites", table => {
+exports.up = knex => knex.schema.createTable("orders_items", table => {
   table.increments("id");
 
 
@@ -12,4 +12,4 @@ exports.up = knex => knex.schema.createTable("favorites", table => {
 });
 
 
-exports.down = knex => knex.schema.dropTable("favorites");
+exports.down = knex => knex.schema.dropTable("orders_items");
