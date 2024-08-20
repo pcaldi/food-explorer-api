@@ -4,7 +4,7 @@ const express = require('express');
 const cors = require('cors');
 const AppError = require('./utils/AppError');
 
-const database = require('../src/database/sqlite');
+const database = require('./database/sqlite');
 
 const routes = require('./routes');
 
