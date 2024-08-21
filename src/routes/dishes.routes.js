@@ -10,5 +10,6 @@ dishesRoutes.get('/', dishesController.index);
 dishesRoutes.post('/:user_id', dishesController.create);
 dishesRoutes.get('/:id', dishesController.show);
 dishesRoutes.delete('/:id', dishesController.delete);
+dishesRoutes.patch('/:id', dishesController.update);
 
 module.exports = dishesRoutes;
