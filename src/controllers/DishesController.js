@@ -148,8 +148,6 @@ class DishesController {
       await knex("ingredients").insert(ingredientsInsert);
     }
 
-    dishUpdate.updated_by = dish.created_by;
-
     await knex("dishes").where({ id }).update(dishUpdate);
 
     return response.json();
