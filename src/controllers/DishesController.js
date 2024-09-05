@@ -1,23 +1,30 @@
 
 const knex = require("../database/knex");
+const DiskStorage = require("../providers/DiskStorage");
+const AppError = require("../utils/AppError");
 
 class DishesController {
   async create(request, response) {
-    const { name, description, category, price, image, ingredients } = request.body;
-
+    const { name, description, category, price, ingredients } = request.body;
+    const image = request.file.filename;
     const user_id = request.user.id;
+
+    const diskStorage = new DiskStorage();
+    const filename = await diskStorage.saveFile(image);
+
+    const ingredientsArray = JSON.parse(ingredients || '[]');
 
     const [dish_id] = await knex("dishes").insert({
       name,
       description,
       category,
       price,
-      image,
+      image: filename,
       created_by: user_id,
       updated_by: user_id,
     });
 
-    const ingredientsInsert = ingredients.map((name) => {
+    const ingredientsInsert = ingredientsArray.map((name) => {
       return {
         dish_id,
         name,
@@ -97,17 +104,35 @@ class DishesController {
 
   async update(request, response) {
     const { id } = request.params;
-    const { name, description, category, price, image, ingredients } = request.body;
+    const { name, description, category, price, ingredients } = request.body;
+
+    const imageFile = request.file?.filename
 
     const dish = await knex("dishes").where({ id }).first();
+
+    if (!dish) {
+      throw new AppError("Prato não encontrado.");
+    }
 
     const dishUpdate = {
       name: name ?? dish.name,
       description: description ?? dish.description,
       category: category ?? dish.category,
       price: price ?? dish.price,
-      image: image ?? dish.image,
     }
+
+    if (imageFile) {
+      const diskStorage = new DiskStorage()
+
+      if (dish.image) {
+        await diskStorage.removeFile(dish.image)
+      }
+
+      const filename = await diskStorage.saveFile(imageFile)
+      dishUpdate.image = filename;
+    }
+
+
 
     if (ingredients) {
       await knex("ingredients").where({ dish_id: id }).delete();
