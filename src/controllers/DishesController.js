@@ -6,13 +6,21 @@ const AppError = require("../utils/AppError");
 class DishesController {
   async create(request, response) {
     const { name, description, category, price, ingredients } = request.body;
-    const image = request.file.filename;
     const user_id = request.user.id;
 
     const diskStorage = new DiskStorage();
-    const filename = await diskStorage.saveFile(image);
 
-    const ingredientsArray = JSON.parse(ingredients || '[]');
+    // Se a imagem foi enviada, salve-a, senão continue sem imagem
+    let filename = null;
+    if (request.file) {
+      const image = request.file.filename;
+      filename = await diskStorage.saveFile(image);
+    }
+
+    // Verifica se ingredients é uma string antes de chamar split
+    const ingredientsArray = typeof ingredients === 'string'
+      ? ingredients.split(',').map(ingredient => ingredient.trim())
+      : [];
 
     const [dish_id] = await knex("dishes").insert({
       name,
@@ -32,7 +40,10 @@ class DishesController {
       };
     });
 
-    await knex("ingredients").insert(ingredientsInsert);
+    // Apenas insira se houver ingredientes
+    if (ingredientsInsert.length > 0) {
+      await knex("ingredients").insert(ingredientsInsert);
+    }
 
     return response.json();
   }
@@ -106,7 +117,7 @@ class DishesController {
     const { id } = request.params;
     const { name, description, category, price, ingredients } = request.body;
 
-    const imageFile = request.file?.filename
+    const imageFile = request.file.filename
 
     const dish = await knex("dishes").where({ id }).first();
 
