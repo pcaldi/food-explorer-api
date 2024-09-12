@@ -17,10 +17,11 @@ class DishesController {
       filename = await diskStorage.saveFile(image);
     }
 
-    // Verifica se ingredients é uma string antes de chamar split
     const ingredientsArray = typeof ingredients === 'string'
-      ? ingredients.split(',').map(ingredient => ingredient.trim())
+      ? ingredients.split(',').map(ingredient => ingredient.replace(/["[\]]/g, '')
+        .trim())
       : [];
+
 
     const [dish_id] = await knex("dishes").insert({
       name,
@@ -40,10 +41,7 @@ class DishesController {
       };
     });
 
-    // Apenas insira se houver ingredientes
-    if (ingredientsInsert.length > 0) {
-      await knex("ingredients").insert(ingredientsInsert);
-    }
+    await knex("ingredients").insert(ingredientsInsert)
 
     return response.json();
   }
@@ -53,6 +51,10 @@ class DishesController {
     const { id } = request.params;
 
     const dish = await knex("dishes").where({ id }).first();
+
+    if (!dish) {
+      throw new AppError("Prato não encontrado.");
+    }
     const ingredients = await knex("ingredients").where({ dish_id: id }).orderBy("name");
 
     return response.json({
@@ -80,6 +82,7 @@ class DishesController {
 
       dishes = await knex("ingredients")
         .select([
+          "dishes.id",
           "dishes.name",
           "dishes.description",
           "dishes.category",
@@ -88,7 +91,7 @@ class DishesController {
         ])
         .whereLike("dishes.name", `%${title}%`)
         .whereIn("ingredients.name", filteredIngredients)
-        .innerJoin("dishes", "dishes,id", "ingredients.dish_id")
+        .innerJoin("dishes", "dishes.id", "ingredients.dish_id")
         .orderBy("dishes.name")
 
     } else {
@@ -104,25 +107,23 @@ class DishesController {
       const dishIngredients = dishesIngredients.filter(ingredients => ingredients.dish_id === dish.id);
 
       return {
-        ...dishes,
+        ...dish,
         ingredients: dishIngredients
       }
     })
 
     return response.json(dishWithIngredients);
-
   }
 
   async update(request, response) {
     const { id } = request.params;
     const { name, description, category, price, ingredients } = request.body;
-
-    const imageFile = request.file.filename
+    const imageFile = request.file?.filename
 
     const dish = await knex("dishes").where({ id }).first();
 
     if (!dish) {
-      throw new AppError("Prato não encontrado.");
+      throw new AppError("Prato não encontrado.", 404);
     }
 
     const dishUpdate = {
@@ -130,6 +131,8 @@ class DishesController {
       description: description ?? dish.description,
       category: category ?? dish.category,
       price: price ?? dish.price,
+      updated_by: request.user.id,
+      updated_at: knex.fn.now(),
     }
 
     if (imageFile) {
@@ -142,8 +145,6 @@ class DishesController {
       const filename = await diskStorage.saveFile(imageFile)
       dishUpdate.image = filename;
     }
-
-
 
     if (ingredients) {
       await knex("ingredients").where({ dish_id: id }).delete();
@@ -162,8 +163,6 @@ class DishesController {
     await knex("dishes").where({ id }).update(dishUpdate);
 
     return response.json();
-
-
   }
 }
 
