@@ -55,6 +55,7 @@ class DishesController {
     if (!dish) {
       throw new AppError("Prato não encontrado.");
     }
+
     const ingredients = await knex("ingredients").where({ dish_id: id }).orderBy("name");
 
     return response.json({
@@ -72,7 +73,7 @@ class DishesController {
   }
 
   async index(request, response) {
-    const { title, ingredients } = request.query;
+    const { name, ingredients } = request.query;
 
     let dishes;
 
@@ -89,15 +90,16 @@ class DishesController {
           "dishes.price",
           "dishes.image",
         ])
-        .whereLike("dishes.name", `%${title}%`)
+        .whereLike("dishes.name", `%${name}%`)
         .whereIn("ingredients.name", filteredIngredients)
         .innerJoin("dishes", "dishes.id", "ingredients.dish_id")
+        .groupBy("dishes.id")
         .orderBy("dishes.name")
 
     } else {
 
       dishes = await knex("dishes")
-        .whereLike("name", `%${title}%`)
+        .whereLike("name", `%${name}%`)
         .orderBy("name")
     }
 
