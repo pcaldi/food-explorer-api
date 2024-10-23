@@ -1,35 +1,14 @@
-const knex = require('../database/knex');
-const AppError = require('../utils/AppError');
+const knex = require("../database/knex");
 
 class FavoritesController {
   async create(request, response) {
     const { dish_id } = request.body;
     const user_id = request.user.id;
 
-    // Verificar se o prato já está nos favoritos
-    const favoriteExists = await knex("favorites").where({ dish_id, user_id }).first();
-
-    if (favoriteExists) {
-      throw new AppError("Você já favoritou este prato.", 400);
-    }
-
-    // Adiciona o favorito
-    await knex("favorites").insert({
-      dish_id,
+    const favorite = await knex("favorites").insert({
       user_id,
+      dish_id,
     });
-
-    // Retorna os dados do prato favoritado
-    const favorite = await knex("dishes")
-      .select([
-        "dishes.id",
-        "dishes.name",
-        "dishes.description",
-        "dishes.price",
-        "dishes.image",
-      ])
-      .where("dishes.id", dish_id)
-      .first();
 
     return response.json(favorite);
   }
@@ -38,9 +17,9 @@ class FavoritesController {
     const user_id = request.user.id;
 
     const favorites = await knex("favorites")
-      .select("dishes.*")
+      .select("dishes.*", "favorites.dish_id")
       .innerJoin("dishes", "dishes.id", "favorites.dish_id")
-      .where({ "favorites.user_id": user_id });
+      .where({ user_id });
 
     return response.json(favorites);
   }
